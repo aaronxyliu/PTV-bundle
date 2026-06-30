@@ -10,10 +10,10 @@ from dotenv import load_dotenv
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Import paired PTV stage-2 JSONL results into MySQL.")
-    parser.add_argument("--input", default="stage2-ptv-pair-puppeteer-results.jsonl")
+    parser = argparse.ArgumentParser(description="Import PTV-bundle detection JSONL records into MySQL.")
+    parser.add_argument("--input", default="ptv-bundle-detections.jsonl")
     parser.add_argument("--database", default=os.getenv("DB_DATABASE", "debundle_stage2"))
-    parser.add_argument("--table-prefix", default="ptv_pair_puppeteer")
+    parser.add_argument("--table-prefix", default="ptv_bundle_detection")
     return parser.parse_args()
 
 
@@ -187,7 +187,7 @@ def main():
                 continue
             insert_result(conn, args.table_prefix, json.loads(line))
             count += 1
-        print(f"Imported {count} paired records into {args.database}.{args.table_prefix}_runs")
+        print(f"Imported {count} detection records into {args.database}.{args.table_prefix}_runs")
     finally:
         conn.close()
 

@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Summarize paired PTV stage-2 MySQL results.")
+    parser = argparse.ArgumentParser(description="Summarize PTV-bundle detection MySQL results.")
     parser.add_argument("--database", default=os.getenv("DB_DATABASE", "debundle_stage2"))
-    parser.add_argument("--table-prefix", default="ptv_pair_puppeteer")
+    parser.add_argument("--table-prefix", default="ptv_bundle_detection")
     return parser.parse_args()
 
 

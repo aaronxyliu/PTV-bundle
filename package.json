@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
+    "ptv-bundle-detect": "./bin/ptv-bundle-crawl.js",
     "ptv-bundle-crawl": "./bin/ptv-bundle-crawl.js",
     "globalize-library": "./globalize-library.js"
   },
@@ -11,6 +15,8 @@
     "setup:ptv": "bash scripts/setup_ptv.sh",
     "test": "node --test tests/*.test.js",
     "test:webpack-globalization": "node --test tests/webpack-globalization.test.js",
+    "detect": "node bin/ptv-bundle-crawl.js",
+    "detect:sample": "node bin/ptv-bundle-crawl.js --input data/china_accessible_sites.csv --limit 3 --output results/sample-detections.jsonl --output-csv results/sample-detections.csv",
     "crawl": "node bin/ptv-bundle-crawl.js",
     "crawl:sample": "node bin/ptv-bundle-crawl.js --input data/china_accessible_sites.csv --limit 3 --output results/sample.jsonl --output-csv results/sample.csv",
     "db:summary": "python3 scripts/db_summary.py"

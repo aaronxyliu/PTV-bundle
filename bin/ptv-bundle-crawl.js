@@ -6,8 +6,8 @@ const path = require("path");
 const { mkdtempSync } = require("fs");
 const puppeteer = require("puppeteer-core");
 const { parseArgs, readTargets, usage } = require("../lib/cli-options.js");
-const { appendCsv, appendJsonl, importToDatabase, prepareOutputs } = require("../lib/output.js");
-const { crawlPair, summarize } = require("../lib/comparison-experiment.js");
+const { appendCsv, appendJsonl, importRecordToDatabase, prepareOutputs } = require("../lib/output.js");
+const { detectBundledLibraries, summarize } = require("../lib/comparison-experiment.js");
 
 async function launchBrowser(args, userDataDir) {
   // Puppeteer 24's enableExtensions option with pipe transport is the verified
@@ -62,23 +62,22 @@ async function main() {
   prepareOutputs(args);
 
   // Use an isolated profile so extension state, cookies, and cache do not bleed
-  // between normal browsing and experiment runs.
-  const userDataDir = mkdtempSync(path.join(os.tmpdir(), "ptv-stage2-pair-"));
+  // between normal browsing and detection runs.
+  const userDataDir = mkdtempSync(path.join(os.tmpdir(), "ptv-bundle-detect-"));
   const browser = await launchBrowser(args, userDataDir);
 
   try {
     for (const target of targets) {
-      console.log(`Crawling pair #${target.rank} ${target.url}`);
-      const record = await crawlPair(browser, target, args);
+      console.log(`Detecting bundled libraries #${target.rank} ${target.url}`);
+      const record = await detectBundledLibraries(browser, target, args);
       appendJsonl(args.output, record);
       appendCsv(args.outputCsv, record);
+      importRecordToDatabase(args, record);
       console.log(JSON.stringify(summarize(record)));
     }
   } finally {
     await browser.close().catch(() => {});
   }
-
-  importToDatabase(args);
 }
 
 if (require.main === module) {
