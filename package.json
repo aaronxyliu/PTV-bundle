@@ -1,0 +1,20 @@
+{
+  "name": "ptv-bundle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "bin": {
+    "ptv-bundle-crawl": "./bin/ptv-bundle-crawl.js",
+    "globalize-library": "./globalize-library.js"
+  },
+  "scripts": {
+    "setup:ptv": "bash scripts/setup_ptv.sh",
+    "crawl": "node bin/ptv-bundle-crawl.js",
+    "crawl:sample": "node bin/ptv-bundle-crawl.js --input data/china_accessible_sites.csv --limit 3 --output results/sample.jsonl --output-csv results/sample.csv",
+    "db:summary": "python3 scripts/db_summary.py"
+  },
+  "dependencies": {
+    "acorn": "^8.15.0",
+    "puppeteer-core": "^24.43.1"
+  }
+}

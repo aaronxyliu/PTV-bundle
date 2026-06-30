@@ -1,0 +1,28 @@
+node_modules/
+npm-debug.log*
+
+# Runtime outputs
+results/
+*.jsonl
+*.csv
+!data/*.csv
+
+# Local environment and database credentials
+.env
+.env.*
+
+# PTV is cloned by scripts/setup_ptv.sh and should not be vendored here.
+external/
+
+# Browser and experiment caches
+.ptv-bundle-cache/
+.cache/
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
