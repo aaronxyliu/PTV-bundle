@@ -24,6 +24,18 @@ https://github.com/aaronxyliu/PTV.git
 
 The cloned PTV directory is stored in `external/PTV`, which is gitignored.
 
+## Code Layout
+
+The crawler is split by responsibility so each stage can be tested or changed independently:
+
+- `globalize-library.js` instruments JavaScript source files. It parses bundle code, finds Webpack module export patterns, and rewrites recognized factories so exports are exposed through `window.varStorage.modules`.
+- `lib/script-interceptor.js` intercepts JavaScript responses in the browser with Chrome DevTools Protocol `Fetch`, runs `globalize-library.js` on each response body, and records per-script instrumentation diagnostics.
+- `lib/ptv-runner.js` drives one browser visit with PTV enabled. It handles navigation, consent clicks, simple scrolling, PTV result collection, and optional response instrumentation.
+- `lib/comparison-experiment.js` runs the paired experiment: one baseline visit without instrumentation, one instrumented visit, then computes the newly detected library/version pairs.
+- `lib/output.js` writes JSONL/CSV results and optionally imports them into MySQL.
+- `lib/cli-options.js` owns command-line parsing, URL normalization, and input-list loading.
+- `bin/ptv-bundle-crawl.js` is now a thin executable that validates inputs, launches Chrome with PTV, runs the paired comparison, and writes outputs.
+
 ## Install
 
 ```bash
@@ -135,7 +147,7 @@ This method was selected because current Chrome automation reliably loaded PTV w
 
 ### Response-Phase Instrumentation
 
-The crawler uses Chrome DevTools Protocol `Fetch` interception at response time:
+`lib/script-interceptor.js` uses Chrome DevTools Protocol `Fetch` interception at response time:
 
 ```js
 Fetch.enable({
@@ -144,6 +156,15 @@ Fetch.enable({
 ```
 
 For JavaScript responses, it reads the response body, runs `globalize-library.js`, and fulfills the browser request with the transformed code. This timing matters: the instrumented module factory must run during the library loading phase. Injecting code after page initialization is too late for many bundle-local exports.
+
+### Paired Comparison Experiment
+
+`lib/comparison-experiment.js` compares PTV results before and after instrumentation for each target URL. It keeps the output record shape stable:
+
+1. `baseline` stores the PTV result from a normal page load.
+2. `instrumented` stores the PTV result from a page load where JavaScript responses were globalized before execution.
+3. `new_libraries` contains library/version detections present only in the instrumented run.
+4. `instrumentation` summarizes how many JavaScript responses were seen, changed, parse-failed, or errored.
 
 ### Webpack Export Globalization
 
