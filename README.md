@@ -1,5 +1,7 @@
 # PTV-bundle
 
+[![Test](https://github.com/aaronxyliu/PTV-bundle/actions/workflows/test.yml/badge.svg)](https://github.com/aaronxyliu/PTV-bundle/actions/workflows/test.yml)
+
 PTV-bundle is a functional extension around [PTV](https://github.com/aaronxyliu/PTV.git) for detecting front-end JavaScript libraries hidden inside bundled Webpack code.
 
 PTV’s original detection model extracts a runtime property tree (**pTree**) from the browser `window` object and matches it against library fingerprints. This works well when a library exposes a root variable such as `window.$`, `window.jQuery`, or `window.React`. However, modern Webpack bundles often keep third-party libraries inside bundle-local module scopes, so the library object exists during execution but is not reachable from `window`.
@@ -107,6 +109,13 @@ window.varStorage.modules[<some id>].fn.jquery === "3.7.1"
 ```
 
 Generated fixture apps and bundles are written to the OS temp directory and removed after each test. The same suite runs in GitHub Actions on every push and pull request.
+
+The GitHub Actions workflow runs the same test suite on two Node.js runtimes:
+
+- **Node.js 20 LTS**: the long-term-support baseline used to catch regressions in the stable runtime.
+- **Node.js 22 Current**: the newer runtime used to catch compatibility issues early.
+
+The status badge at the top of this README links to the latest workflow result and shows whether the test matrix is passing on the repository main page.
 
 Run and import to MySQL:
 

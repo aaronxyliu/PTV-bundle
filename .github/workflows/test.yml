@@ -6,11 +6,16 @@ on:
 
 jobs:
   test:
+    name: ${{ matrix.node-label }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [20.x, 22.x]
+        include:
+          - node-version: 20.x
+            node-label: Node.js 20 LTS
+          - node-version: 22.x
+            node-label: Node.js 22 Current
 
     steps:
       - name: Check out repository
