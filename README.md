@@ -28,7 +28,11 @@ The cloned PTV directory is stored in `external/PTV`, which is gitignored.
 
 The crawler is split by responsibility so each stage can be tested or changed independently:
 
-- `globalize-library.js` instruments JavaScript source files. It parses bundle code, finds Webpack module export patterns, and rewrites recognized factories so exports are exposed through `window.varStorage.modules`.
+- `globalize-library.js` is the stable public entrypoint and CLI for JavaScript source instrumentation.
+- `lib/globalize/ast-utils.js` owns Acorn parsing, AST walking, and small node-inspection helpers.
+- `lib/globalize/require-wrapper.js` detects and patches Webpack require/cache wrapper functions so every initialized module export can be mirrored into `window.varStorage.modules`.
+- `lib/globalize/entry-require.js` provides the fallback detector for entry-level `require(moduleId)` variables and records async chunk registration sites.
+- `lib/globalize/instrumenter.js` coordinates parsing, primary instrumentation, fallback instrumentation, and metadata generation.
 - `lib/script-interceptor.js` intercepts JavaScript responses in the browser with Chrome DevTools Protocol `Fetch`, runs `globalize-library.js` on each response body, and records per-script instrumentation diagnostics.
 - `lib/ptv-runner.js` drives one browser visit with PTV enabled. It handles navigation, consent clicks, simple scrolling, PTV result collection, and optional response instrumentation.
 - `lib/comparison-experiment.js` runs the paired experiment: one baseline visit without instrumentation, one instrumented visit, then computes the newly detected library/version pairs.
@@ -77,6 +81,32 @@ npm run crawl -- \
   --output results/china-sites.jsonl \
   --output-csv results/china-sites.csv
 ```
+
+## Tests
+
+Run the automated test suite:
+
+```bash
+npm test
+```
+
+The Webpack globalization test builds blank temporary web applications that import `jquery@3.7.1`, instruments the generated JavaScript assets, and executes them in a DOM-like environment. The matrix covers Webpack 3, Webpack 4, and Webpack 5 across several runtime shapes:
+
+- synchronous entry bundles;
+- async `import("jquery")` chunks loaded through Webpack JSONP/runtime loaders;
+- development, production, and minified production output;
+- source-map and eval-source-map output;
+- split initial chunks with `splitChunks` and `runtimeChunk`;
+- custom `publicPath` and `chunkFilename`;
+- UMD library output.
+
+Each case asserts that the jQuery export is reachable through the globalized module storage:
+
+```js
+window.varStorage.modules[<some id>].fn.jquery === "3.7.1"
+```
+
+Generated fixture apps and bundles are written to the OS temp directory and removed after each test. The same suite runs in GitHub Actions on every push and pull request.
 
 Run and import to MySQL:
 
@@ -155,7 +185,7 @@ Fetch.enable({
 })
 ```
 
-For JavaScript responses, it reads the response body, runs `globalize-library.js`, and fulfills the browser request with the transformed code. This timing matters: the instrumented module factory must run during the library loading phase. Injecting code after page initialization is too late for many bundle-local exports.
+For JavaScript responses, it reads the response body, calls the `instrumentJavaScript` API exported by `globalize-library.js`, and fulfills the browser request with the transformed code. This timing matters: the instrumented module factory must run during the library loading phase. Injecting code after page initialization is too late for many bundle-local exports.
 
 ### Paired Comparison Experiment
 
@@ -168,7 +198,12 @@ For JavaScript responses, it reads the response body, runs `globalize-library.js
 
 ### Webpack Export Globalization
 
-`globalize-library.js` parses JavaScript with Acorn and detects common Webpack module patterns, including module cache wrappers and module factory tables. When it finds a module export expression, it inserts code equivalent to:
+The globalizer parses JavaScript with Acorn and then applies two Webpack-specific strategies:
+
+1. `lib/globalize/require-wrapper.js` looks for the central Webpack require/cache wrapper. This is the preferred path because it can observe each module export after the factory executes and before the wrapper returns.
+2. `lib/globalize/entry-require.js` falls back to exposing entry-level direct `require(moduleId)` variables when the central wrapper is not recognizable.
+
+When the require-wrapper strategy finds a module export expression, it inserts code equivalent to:
 
 ```js
 window.varStorage = window.varStorage || {};
