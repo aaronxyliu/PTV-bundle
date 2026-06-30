@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "acorn": "^8.15.0",
-    "puppeteer-core": "^24.43.1"
+    "puppeteer-core": "^25.2.1"
   },
   "devDependencies": {
     "jquery": "^3.7.1",
