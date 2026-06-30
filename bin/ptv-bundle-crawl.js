@@ -32,6 +32,8 @@ async function launchBrowser(args, userDataDir) {
 }
 
 function validateArgs(args) {
+  // Fail before creating output files or launching Chrome when required local
+  // dependencies are missing.
   if (!args.chromePath || !fs.existsSync(args.chromePath)) {
     console.error(usage());
     throw new Error("Chrome executable not found. Pass --chrome-path <path>.");
@@ -59,6 +61,8 @@ async function main() {
   const targets = readTargets(args);
   prepareOutputs(args);
 
+  // Use an isolated profile so extension state, cookies, and cache do not bleed
+  // between normal browsing and experiment runs.
   const userDataDir = mkdtempSync(path.join(os.tmpdir(), "ptv-stage2-pair-"));
   const browser = await launchBrowser(args, userDataDir);
 
