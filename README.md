@@ -78,7 +78,13 @@ When the require-wrapper strategy finds a module export expression, it inserts c
 ```js
 window.varStorage = window.varStorage || {};
 window.varStorage.modules = window.varStorage.modules || {};
+window.varStorage.moduleLocations = window.varStorage.moduleLocations || {};
 window.varStorage.modules[moduleId] = module.exports;
+window.varStorage.moduleLocations[moduleId] = {
+  module_id: String(moduleId),
+  script_url: "https://example.test/assets/app.js",
+  webpack_pattern: "require-cache-wrapper"
+};
 ```
 
 The instrumentation is intended to create an observational side channel for PTV, not a stable application API.
@@ -91,6 +97,8 @@ The bundled-library-aware PTV detector searches:
 - synthetic roots derived from `window.varStorage.modules`.
 
 For each module export, PTV maps known library root aliases onto the export object and applies its existing property-tree fingerprint logic. This allows PTV to detect libraries whose root object is otherwise hidden inside Webpack.
+
+Bundled detection results include `locations` and `location_details` arrays. For `window.varStorage.modules` matches, `location_details` records the matched module id, export path, Webpack pattern, and source script URL so repeated library/version matches can be grouped by their original bundled location.
 
 ## Installation
 
@@ -314,31 +322,31 @@ This project also includes:
 
 ## Preliminary Results
 
-We ran a paired crawl on 15 high-traffic sites to compare the number of libraries detected by PTV before and after instrumentation. These preliminary results are retained as evidence that response-phase globalization increases PTV’s bundled-library detection coverage, with about a 2000% increase in raw detections for this sample.
+We ran a paired crawl on 15 high-traffic sites to compare the number of libraries detected by PTV before and after instrumentation. These preliminary results use the corrected bundled-root matcher, which checks fingerprints against the real captured module export instead of a synthetic alias object. The much smaller increase is expected: the previous table included many over-matches where one bundled export with a generic `version` property was identified as many unrelated libraries.
 
 | Domain | Baseline | Instrumented | New Raw Detections | JS Seen | JS Instrumented | Status |
 |---|---:|---:|---:|---:|---:|---|
-| baidu.com | 3 | 67 | 64 | 37 | 20 | ok |
-| qq.com | 3 | 0 | 0 | 19 | 11 | timeout |
-| taobao.com | 5 | 146 | 141 | 60 | 36 | ok |
-| jd.com | 4 | 189 | 185 | 100 | 40 | ok |
-| bilibili.com | 3 | 94 | 91 | 10 | 6 | ok |
-| zhihu.com | 7 | 252 | 247 | 64 | 56 | ok |
-| weibo.com | 3 | 40 | 37 | 9 | 4 | ok |
-| 163.com | 4 | 133 | 129 | 19 | 11 | ok |
-| sina.com.cn | 1 | 7 | 6 | 34 | 5 | ok |
-| sohu.com | 5 | 71 | 66 | 16 | 3 | ok |
-| douyin.com | 3 | 0 | 0 | 170 | 141 | timeout |
-| csdn.net | 5 | 71 | 66 | 17 | 11 | ok |
-| alipay.com | 7 | 17 | 10 | 11 | 7 | ok |
-| tmall.com | 4 | 142 | 138 | 26 | 20 | ok |
-| mi.com | 2 | 2 | 0 | 1 | 0 | ok |
-| TOTAL | 59 | 1231 | 1180 | 593 | 371 | - |
+| baidu.com | 3 | 3 | 0 | 37 | 20 | ok |
+| qq.com | 3 | 3 | 0 | 16 | 10 | ok |
+| taobao.com | 5 | 5 | 0 | 52 | 33 | ok |
+| jd.com | 4 | 6 | 2 | 39 | 16 | ok |
+| bilibili.com | 0 | 3 | 3 | 14 | 9 | ok (baseline error) |
+| zhihu.com | 7 | 8 | 4 | 64 | 56 | ok |
+| weibo.com | 3 | 3 | 0 | 9 | 4 | ok |
+| 163.com | 4 | 4 | 0 | 19 | 10 | ok |
+| sina.com.cn | 1 | 1 | 0 | 98 | 23 | ok |
+| sohu.com | 5 | 5 | 0 | 39 | 7 | ok |
+| douyin.com | 3 | 8 | 6 | 133 | 112 | ok |
+| csdn.net | 5 | 5 | 0 | 17 | 11 | ok |
+| alipay.com | 7 | 7 | 0 | 11 | 7 | ok |
+| tmall.com | 4 | 4 | 0 | 27 | 21 | ok |
+| mi.com | 2 | 3 | 1 | 130 | 79 | ok |
+| TOTAL | 56 | 68 | 16 | 705 | 418 | - |
 
 ## Limitations
 
 - Some sites time out under full response interception.
 - Websites may serve different code across visits due to A/B testing, region, cache, or login state.
-- PTV’s current property-tree matcher may over-match exposed module exports.
+- Bundled detection now checks fingerprints against the real captured module export, but results can still vary with site code, timing, and region.
 - This tool does not bypass logins, bot checks, or access controls.
 - `window.varStorage.modules` is an observational channel and should not be interpreted as a stable application API.

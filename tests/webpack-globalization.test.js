@@ -242,7 +242,9 @@ function instrumentBuildOutput(distDir) {
   for (const file of files) {
     const relativePath = path.relative(distDir, file).split(path.sep).join("/");
     const source = fs.readFileSync(file, "utf8");
-    const result = instrumentJavaScript(source);
+    const result = instrumentJavaScript(source, {
+      scriptUrl: `https://ptv-bundle.test/assets/${relativePath}`,
+    });
     instrumented.set(relativePath, result.changed ? result.code : source);
     reports.push({
       file: relativePath,
@@ -378,12 +380,16 @@ for (const testCase of WEBPACK_CASES) {
       assert.equal(window.document.body.getAttribute("data-jquery-version"), JQUERY_VERSION);
 
       const { moduleId, moduleExports } = findCapturedJqueryModule(window);
+      const location = window.varStorage.moduleLocations[moduleId];
       assert.equal(
         window.varStorage.modules[moduleId].fn.jquery,
         JQUERY_VERSION,
         `window.varStorage.modules[${JSON.stringify(moduleId)}].fn.jquery should equal ${JQUERY_VERSION}`,
       );
       assert.strictEqual(moduleExports, window.varStorage.modules[moduleId]);
+      assert.equal(location.bundler, "webpack");
+      assert.equal(location.webpack_pattern, "require-cache-wrapper");
+      assert.match(location.script_url, /^https:\/\/ptv-bundle\.test\/assets\/.+\.js$/);
     } finally {
       fs.rmSync(testDir, { recursive: true, force: true });
     }
