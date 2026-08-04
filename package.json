@@ -22,8 +22,8 @@
     "db:summary": "python3 scripts/db_summary.py"
   },
   "dependencies": {
-    "acorn": "^8.15.0",
-    "puppeteer-core": "^24.43.1"
+    "acorn": "^8.18.0",
+    "puppeteer-core": "^25.4.0"
   },
   "devDependencies": {
     "jquery": "^3.7.1",
